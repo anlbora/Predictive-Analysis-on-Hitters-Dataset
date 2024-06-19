@@ -46,3 +46,161 @@ import joblib
 import warnings
 warnings.filterwarnings("ignore")
 ```
+
+# Import Dataset
+
+```
+df = pd.read_csv("/kaggle/input/hitters")
+df.head()
+```
+# General Information About to Dataset
+
+```
+def check_df(dataframe,head=5):
+  print(20*"#", "Head", 20*"#")
+  print(dataframe.head(head))
+  print(20*"#", "Tail", 20*"#")
+  print(dataframe.tail(head))
+  print(20*"#", "Shape", 20*"#")
+  print(dataframe.shape)
+  print(20*"#", "Types", 20*"#")
+  print(dataframe.dtypes)
+  print(20*"#", "NA", 20*"#")
+  print(dataframe.isnull().sum())
+  print(20*"#", "Qurtiles", 20*"#")
+  print(dataframe.describe([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
+```
+
+# Analysis of Categorical and Numerical Variables
+```
+def grab_col_names(dataframe, cat_th=10, car_th=20):
+  #Catgeorical Variable Selection
+  cat_cols = [col for col in dataframe.columns if str(dataframe[col].dtypes) in ["category","object","bool"]]
+  num_but_cat = [col for col in dataframe.columns if dataframe[col].nunique() < cat_th and dataframe[col].dtypes in ["uint8","int64","float64"]]
+  cat_but_car = [col for col in dataframe.columns if dataframe[col].nunique() > car_th and str(dataframe[col].dtypes) in ["category","object"]]
+  cat_cols = cat_cols + num_but_cat
+  cat_cols = [col for col in cat_cols if col not in cat_but_car]
+
+  #Numerical Variable Selection
+  num_cols = [col for col in dataframe.columns if dataframe[col].dtypes in ["uint8","int64","float64"]]
+  num_cols = [col for col in num_cols if col not in cat_cols]
+
+  return cat_cols, num_cols, cat_but_car, num_but_cat
+```
+
+```
+cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(df)
+
+#Print Categorical and Numerical Variables
+print(f"Observations: {df.shape[0]}")
+print(f"Variables: {df.shape[1]}")
+print(f"Cat_cols: {len(cat_cols)}")
+print(f"Num_cols: {len(num_cols)}")
+print(f"Cat_but_car: {len(cat_but_car)}")
+print(f"Num_but_cat: {len(num_but_cat)}"
+```
+```
+def cat_summary(dataframe,col_name,plot=False):
+  print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
+                      'Ration': 100 * dataframe[col_name].value_counts() / len(dataframe)}))
+  print("##########################################")
+  if plot:
+    sns.countplot(x=dataframe[col_name],data=dataframe)
+    plt.show(block=True)
+```
+```
+def cat_summary_df(dataframe):
+  cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(df)
+  for col in cat_cols:
+    cat_summary(dataframe, col, plot=True)
+```
+
+`cat_summary_df(df)`
+
+```
+def num_summary(dataframe, num_col, plot=False):
+  print(50*"#", num_col ,50*"#")
+  quantiles = [0.01, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
+  print(dataframe[num_col].describe(quantiles).T)
+
+  if plot:
+    dataframe[num_col].hist(bins=20)
+    plt.xlabel(num_col)
+    plt.ylabel(num_col)
+    plt.show(block=True)
+```
+```
+def num_summary_df(dataframe):
+  cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(dataframe)
+  for col in num_cols:
+    num_summary(dataframe, col, plot=True)
+```
+`num_summary_df(df)`
+```
+def plot_num_summary(dataframe):
+  cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(dataframe)
+  plt.figure(figsize=(12,4))
+  for index, col in enumerate(num_cols):
+    plt.subplot(3,6, index+1)
+    plt.tight_layout()
+    dataframe[col].hist(bins=20)
+    plt.title(col)
+```
+`plot_num_summary(df)`
+
+# Target Analysis
+```
+def target_summary_with_cat(dataframe, target, categorical_col):
+  print(f"##################### {target} -> {categorical_col} #####################")
+  print(pd.DataFrame({"Target Mean": dataframe.groupby(categorical_col)[target].mean()}))
+```
+
+```
+def target_summary_with_cat_df(dataframe, target):
+    cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(dataframe)
+    for col in cat_cols:
+        target_summary_with_cat(dataframe, target, col)
+```
+`target_summary_with_cat_df(df, "Salary")`
+
+# Correlation Analysis
+
+```
+def high_correlated_cols(dataframe, corr_th = 0.90, plot=False):
+  num_cols = [col for col in dataframe.columns if dataframe[col].dtypes in ["uint8", "int64", "float64"]]
+  corr = dataframe[num_cols].corr()
+  corr_matrix = corr.abs()
+  upper_triangular_matrix = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+  drop_list = [col for col in upper_triangular_matrix.columns if any(upper_triangular_matrix[col] > corr_th)]
+  if drop_list == []:
+    print("Aftre corelation analysis, we dont need to remove variables")
+
+  if plot:
+    sns.set(rc={'figure.figsize': (18,13)})
+    sns.heatmap(corr, cmap='RdBu', annot=True, fmt=".2f")
+    plt.show()
+
+  return drop_list
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
