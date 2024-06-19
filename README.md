@@ -182,10 +182,109 @@ def high_correlated_cols(dataframe, corr_th = 0.90, plot=False):
 
   return drop_list
 ```
+`drop_list = high_correlated_cols(df, plot=True)`
 
+# Missing Value Analysis
 
+```
+def missing_value_table(dataframe, na_names=False):
+  na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
+  n_miss = dataframe[na_columns].isnull().sum().sort_values(ascending=False)
+  ratio = (dataframe[na_columns].isnull().sum() / dataframe.shape[0] * 100).sort_values(ascending=False)
+  missing_df = pd.concat([n_miss, np.round(ratio, 2)], axis=1, keys=["n_miss", "ratio"])
+  print(missing_df)
+  if na_names:
+    print("######### Na Names ###########")
+    return na_columns
+```
+`missing_value_table(df, na_names=True)`
+```
+def fill_na_median(dataframe):
+  dataframe = dataframe.apply(lambda x: x.fillna(x.median()) if x.dtype not in ["category", "object", "bool"] else x, axis=0)
+  return dataframe
+```
+`df = fill_na_median(df)`
 
+# Encoding & Scaling
+```
+def one_hot_encoding(dataframe, drop_first=True):
+  cat_cols, num_cols, cat_but_car, num_but_cat = grab_col_names(dataframe)
+  dataframe = pd.get_dummies(dataframe, columns=cat_cols, drop_first=drop_first)
+  return dataframe
+```
+`df = one_hot_encoding(df)`
 
+# Create a Base Model: Prediction Salary using Random Forest Algorithm
+
+```
+X = df.drop(["Salary"], axis=1)
+y = df["Salary"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=1)
+```
+```
+rf_model = RandomForestRegressor(random_state=1).fit(X_train, y_train)
+mean_squared_error(y_train, rf_model.predict(X_train))
+mean_squared_error(y_test, rf_model.predict(X_test))
+np.sqrt(mean_squared_error(y_train, rf_model.predict(X_train)))
+np.sqrt(mean_squared_error(y_test, rf_model.predict(X_test)))
+cv_results = cross_validate(rf_model, X, y, cv=10, scoring="neg_mean_squared_error")
+-cv_results['test_score'].mean()
+np.sqrt(-cv_results['test_score'].mean())
+```
+```
+def RF_Model(dataframe, target, test_size=0.20, cv=10, results=False, plot_importance=False, save_results=False):
+  X = dataframe.drop(target, axis=1)
+  y = dataframe[target]
+  X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
+  rf_model = RandomForestRegressor(random_state=1).fit(X_train, y_train)
+  if results:
+    mse_train = mean_squared_error(y_train, rf_model.predict(X_train))
+    mse_test = mean_squared_error(y_test, rf_model.predict(X_test))
+    rmse_train = np.sqrt(mse_train)
+    rmse_test = np.sqrt(mse_test)
+    mae_train = mean_absolute_error(y_train, rf_model.predict(X_train))
+    mae_test = mean_absolute_error(y_test, rf_model.predict(X_test))
+    r2_train = rf_model.score(X_train, y_train)
+    r2_test = rf_model.score(X_test, y_test)
+    cv_results_mse = cross_validate(rf_model, X, y, cv=cv, scoring="neg_mean_squared_error")
+    cv_results_rmse = cross_validate(rf_model, X, y, cv=cv, scoring="neg_root_mean_squared_error")
+
+    print("MSE Train: ", "%.3f" % mse_train)
+    print("MSE Test: ", "%.3f" % mse_test)
+    print("RMSE Train: ", "%.3f" % rmse_train)
+    print("RMSE Test: ", "%.3f" % rmse_test)
+    print("MAE Train: ", "%.3f" % mae_train)
+    print("MAE Test: ", "%.3f" % mae_test)
+    print("R2 Train: ", "%.3f" % r2_train)
+    print("R2 Test: ", "%.3f" % r2_test)
+    print("Cross Validate MSE: ", "%.3f" % -cv_results_mse['test_score'].mean())
+    print("Cross Validate RMSE: ", "%.3f" % -cv_results_rmse['test_score'].mean())
+
+    if plot_importance:
+      feature_imp = pd.DataFrame({'Value': rf_model.feature_importances_, 'Feature': X.columns})
+      plt.figure(figsize=(8, 6))
+      sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False))
+      plt.title("Importance Features")
+      plt.tight_layout()
+      plt.savefig("importance.jpg")
+      plt.show()
+
+    if save_results:
+      joblib.dump(rf_model, "rf_model.pkl")
+```
+`RF_Model(df, "Salary", results=True, plot_importance=True, save_results=True)`
+`
+def load_model(pklfile):
+  model_disc = joblib.load(pklfile)
+  return model_disc
+`
+`X = [300, 70, 1, 40, 50, 20, 2, 200, 70, 1, 40, 40, 20, 500, 40, 30, True, False, True]
+model_disc = load_model("rf_model.pkl")
+model_disc.predict(pd.DataFrame(X).T)[0]
+X = df.drop("Salary", axis=1)
+random_baseballer = X.sample(1, random_state=1).values.tolist()[0]
+model_disc.predict(pd.DataFrame(random_baseballer).T)[0]
+`
 
 
 
