@@ -273,18 +273,19 @@ def RF_Model(dataframe, target, test_size=0.20, cv=10, results=False, plot_impor
       joblib.dump(rf_model, "rf_model.pkl")
 ```
 `RF_Model(df, "Salary", results=True, plot_importance=True, save_results=True)`
-`
+```
 def load_model(pklfile):
   model_disc = joblib.load(pklfile)
   return model_disc
-`
-`X = [300, 70, 1, 40, 50, 20, 2, 200, 70, 1, 40, 40, 20, 500, 40, 30, True, False, True]
+```
+```
+X = [300, 70, 1, 40, 50, 20, 2, 200, 70, 1, 40, 40, 20, 500, 40, 30, True, False, True]
 model_disc = load_model("rf_model.pkl")
 model_disc.predict(pd.DataFrame(X).T)[0]
 X = df.drop("Salary", axis=1)
 random_baseballer = X.sample(1, random_state=1).values.tolist()[0]
 model_disc.predict(pd.DataFrame(random_baseballer).T)[0]
-`
+```
 
 
 
